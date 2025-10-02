@@ -26,6 +26,7 @@ crossbeam = "0.8.4"
 itertools = "0.14.0"
 clippy = "0.0.302"
 rand = "0.9.2"
+rand_chacha = "0.9.0"
 #raylib = { version = "5.0" }
 [dependencies.plotters]
 version = "*"

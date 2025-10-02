@@ -12,7 +12,7 @@ pub fn noise_complex<T: SignalType>(len: usize, lvl: f64, sample_rate: f64) -> a
     let mut mag = vec![T::zero(); len];
     let mut phase = vec![T::zero(); len];
 
-    let rng_mag = rand::distr::Uniform::new_inclusive(T::zero(), T::from_f64(f64::powf(1.0, lvl)/20.0).unwrap())?;
+    let rng_mag = rand::distr::Uniform::new_inclusive(T::zero(), T::from_f64(f64::powf(1.0, lvl/20.0)).unwrap())?;
     let rng_phase = rand::distr::Uniform::new(T::zero(), T::from_f64(core::f64::consts::FRAC_2_PI).unwrap())?;
 
     mag.fill_with(|| rng.sample(&rng_mag)); 

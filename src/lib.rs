@@ -14,10 +14,22 @@ pub mod core {
         pub mod chirp;
         pub mod noise;
     }
+    pub mod util {
+        pub mod find_direct_path;
+    }
+}
+pub mod io {
+    pub mod wav;
 }
 pub mod plot {
     pub mod time;
     pub mod spectrum;
+}
+pub mod fs {
+    pub mod init;
+}
+pub mod programs {
+    pub mod ir_extract;
 }
 
 pub fn add(left: u64, right: u64) -> u64 {

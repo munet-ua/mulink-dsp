@@ -6,7 +6,23 @@ use itertools::Itertools;
 use num::{cast::AsPrimitive, Complex, FromPrimitive, Signed};
 use rand::distr::uniform::{SampleBorrow, SampleUniform};
 
-pub trait SignalType: num::Float + std::fmt::Debug +  FromPrimitive + Signed + Send + Sync + AsPrimitive<i32> + AsPrimitive<f64> + SampleBorrow<Self> + SampleUniform + Default + AddAssign + SubAssign + DivAssign + MulAssign + RemAssign + 'static {}
+use crate::io::wav::{read_wav_complex, write_wav_complex};
+
+#[derive(Clone,Copy,Debug)]
+pub enum Amplitude {
+    Linear(f64),
+    Log(f64),
+}
+impl Amplitude {
+    pub fn linear<T: SignalType>(&self) -> T {
+        T::from(match self {
+            Amplitude::Linear(a) => *a,
+            Amplitude::Log(a) => 10.0_f64.powf(*a/20.0),
+        }).expect("Number conversion failed")
+    }
+}
+
+pub trait SignalType: num::Float + std::fmt::Debug +  FromPrimitive + Signed + Send + Sync + AsPrimitive<i32> + AsPrimitive<f64> + AsPrimitive<f32> + SampleBorrow<Self> + SampleUniform + Default + AddAssign + SubAssign + DivAssign + MulAssign + RemAssign + 'static {}
 impl SignalType for f32 {}
 impl SignalType for f64 {}
 
@@ -77,11 +93,11 @@ impl<T: SignalType> Signal<T> {
         normalize: bool,
     ) -> Result<()> {
         // write_wav_real(path, self, sample_format, normalize)
-        todo!()
+        write_wav_complex(path, self, sample_format, normalize)
     }
     pub fn read_wav(path: &str) -> Result<Signal<T>> {
         // read_wav_real(path)
-        todo!()
+        read_wav_complex(path)
     }
 }
 impl<T> Deref for Signal<T> {

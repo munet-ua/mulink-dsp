@@ -45,11 +45,20 @@ pub fn chirp_complex<T: SignalType>(len: usize, f_start: impl Into<T>, f_end: im
             .map(|idx| {
                 let idx:T = T::from_usize(idx).unwrap();
                 T::sin(
-                    (two * pi * (c * T::powi(idx , 2) + f_start * (idx))),
+                    ( pi * (c * T::powi(idx , 2) + f_start * (idx))),
                 )
             })
             .collect()
     }
+
+impl<T: SignalType> Signal<T> {
+    pub fn chirp_complex(sample_rate: f64, len: usize, f_start: f64, f_end: f64) -> Signal<T> {
+        Signal::from_vec(sample_rate, chirp_complex(len, T::from_f64(f_start/sample_rate*2.0).unwrap(), T::from_f64(f_end/sample_rate*2.0).unwrap()))
+    }
+    pub fn chirp_real(sample_rate: f64, len: usize, f_start: f64, f_end: f64) -> Vec<T> {
+        chirp_real(len, f_start/sample_rate*2.0, f_end/sample_rate*2.0)
+    }
+}
 #[test]
 fn test_chirp() -> anyhow::Result<()> {
     // fwd complex

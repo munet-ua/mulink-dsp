@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use log::info;
 use num::{bigint::Sign, Complex, Zero};
 use rkyv::api::high;
@@ -80,7 +80,6 @@ impl<T: SignalType, FFT: FftInst<T>> Filter<T, FFT> {
         
         Some(output)
     }
-    // make this more stateful later
     pub fn finish(mut self) -> Option<Signal<T>> {
         //let mut output = Signal::<T>::new(self.kernel_fft.sample_rate);
         self.refrag.push(&mut Signal::from_vec(self.kernel_fft.sample_rate, vec![Complex::zero(); self.step_size]));
@@ -146,7 +145,29 @@ impl<T: SignalType, FFT: FftInst<T>> Filter<T, FFT> {
     }
 }
 
-// TODO: add `finish`
+pub enum ConvShape {
+    FULL,
+    SAME,
+    VALID
+}
+/// Convenience API
+pub fn fftfilt<T: SignalType>(signal: &Signal<T>, filter: &Signal<T>, shape: ConvShape) -> anyhow::Result<Signal<T>> {
+    let in_len = signal.len();
+    let sample_rate = signal.sample_rate;
+    let filt = Filter::<T>::new(filter.clone())?;
+    let out = filt.process_and_finish(signal.clone()).context("filter did not return values")?;
+    match shape {
+        ConvShape::FULL => Ok(out),
+        ConvShape::SAME => Ok(Signal::from_vec(sample_rate, out[out.time.abs() as usize .. out.time.abs() as usize + in_len].to_vec())),
+        ConvShape::VALID => Ok(Signal::from_vec(sample_rate, out[out.time.abs() as usize*2  .. in_len].to_vec())),
+    }
+}
+
+impl<T: SignalType> Signal<T> {
+    pub fn fftfilt(&self, filter: &Signal<T>, shape: ConvShape) -> anyhow::Result<Signal<T>> {
+        fftfilt(self, filter, shape)
+    }
+}
 
 #[test]
 fn test_filter() -> anyhow::Result<()> {
@@ -168,5 +189,19 @@ fn test_filter() -> anyhow::Result<()> {
     let mut bpf = Filter::<f64>::bandpass(24000.0, 72000.0, 300, 192000.0)?;
     let filtered = bpf.process_and_finish(chirp.clone()).unwrap();
     spectrogram("plot/test/test_filter/bpf_spect.png", filtered, 512, 512-128, true, Some(-120.0));
+
+    let mut bpf = Signal::from_vec(192000.0, fir_bpf::<f64>(0.25, 0.75, 300).unwrap());
+    let filtered = fftfilt(&chirp, &bpf, ConvShape::FULL)?;
+    trace!("len_full: {}", filtered.len());
+
+    spectrogram("plot/test/test_filter/fftfilt_full_bpf_spect.png", filtered, 512, 512-128, true, Some(-120.0));
+    let filtered = fftfilt(&chirp, &bpf, ConvShape::SAME)?;
+    trace!("len_same: {}", filtered.len());
+
+    spectrogram("plot/test/test_filter/fftfilt_same_bpf_spect.png", filtered, 512, 512-128, true, Some(-120.0));
+    let filtered = fftfilt(&chirp, &bpf, ConvShape::VALID)?;
+    trace!("len_valid: {}", filtered.len());
+
+    spectrogram("plot/test/test_filter/fftfilt_valid_bpf_spect.png", filtered, 512, 512-128, true, Some(-120.0));
     Ok(())
 }
